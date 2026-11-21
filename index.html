@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Monthly Habit Tracker (Synced)</title>
+  <title>Monthly Habit Tracker</title>
   <style>
     :root {
       --primary: #4f46e5;
@@ -37,9 +37,16 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
       flex-wrap: wrap;
       gap: 10px;
+    }
+
+    .title-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
     h1 {
@@ -47,27 +54,37 @@
       font-size: 1.5rem;
     }
 
+    .sync-badge {
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #ecfdf5;
+      color: #047857;
+    }
+
+    .sync-badge.error {
+      background: #fef2f2;
+      color: #dc2626;
+    }
+
     .controls {
       display: flex;
       gap: 8px;
       align-items: center;
-      flex-wrap: wrap;
     }
 
-    select, button, input.sync-input {
+    select, button {
       padding: 8px 12px;
       border: 1px solid var(--border);
       border-radius: 8px;
-      font-size: 0.92rem;
+      font-size: 0.95rem;
       background: white;
       color: var(--text);
-    }
-
-    button, select {
       cursor: pointer;
     }
 
-    select:focus, input.sync-input:focus {
+    select:focus {
       outline: 2px solid var(--primary);
     }
 
@@ -78,25 +95,6 @@
 
     button.reset-btn:hover {
       background: #fef2f2;
-    }
-
-    .sync-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      flex-wrap: wrap;
-      background: #f8fafc;
-      border: 1px solid var(--border);
-      padding: 10px 14px;
-      border-radius: 10px;
-      margin-bottom: 16px;
-      font-size: 0.85rem;
-    }
-
-    .sync-status {
-      font-weight: 600;
-      color: #0f766e;
     }
 
     .table-wrapper {
@@ -199,22 +197,16 @@
 
 <div class="container">
   <header>
-    <h1>📅 Monthly 10-Habit Tracker</h1>
+    <div class="title-area">
+      <h1>📅 Monthly 10-Habit Tracker</h1>
+      <span id="syncStatus" class="sync-badge">Connecting...</span>
+    </div>
     <div class="controls">
       <select id="monthSelect" aria-label="Month"></select>
       <select id="yearSelect" aria-label="Year"></select>
       <button class="reset-btn" onclick="resetCurrentMonth()">Reset Month</button>
     </div>
   </header>
-
-  <div class="sync-bar">
-    <div>
-      <label for="syncKeyInput"><b>Sync Key:</b></label>
-      <input type="text" id="syncKeyInput" class="sync-input" placeholder="e.g. my-secret-key-123" style="width: 190px;">
-      <button onclick="applySyncKey()">Connect & Sync</button>
-    </div>
-    <span id="syncStatus" class="sync-status">Local mode (enter a Sync Key to sync across devices)</span>
-  </div>
 
   <div class="table-wrapper">
     <table id="trackerTable">
@@ -228,32 +220,30 @@
     </table>
   </div>
 
-  <p class="guide">💡 Use the <b>same Sync Key</b> on your iPad and phone to keep habits and checkmarks synced.</p>
+  <p class="guide">💡 Click on any <b>habit name</b> at the top to edit it. All changes sync automatically across your devices.</p>
 </div>
 
 <script type="module">
-  // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyADPGN9Hn2n5gZ5Ww_YAy-k1-UHi_-fz7M",
-  authDomain: "godlife-5c3f5.firebaseapp.com",
-  databaseURL: "https://godlife-5c3f5-default-rtdb.firebaseio.com",
-  projectId: "godlife-5c3f5",
-  storageBucket: "godlife-5c3f5.firebasestorage.app",
-  messagingSenderId: "737203853234",
-  appId: "1:737203853234:web:8d98f0ab857976e074f6ab",
-  measurementId: "G-B7D5FS7645"
-};
+  // 1. Replace with your Firebase project config
+  const firebaseConfig = {
+    apiKey: "AIzaSyADPGN9Hn2n5gZ5Ww_YAy-k1-UHi_-fz7M",
+    authDomain: "godlife-5c3f5.firebaseapp.com",
+    databaseURL: "https://godlife-5c3f5-default-rtdb.firebaseio.com",
+    projectId: "godlife-5c3f5",
+    storageBucket: "godlife-5c3f5.firebasestorage.app",
+    messagingSenderId: "737203853234",
+    appId: "1:737203853234:web:8d98f0ab857976e074f6ab",
+    measurementId: "G-B7D5FS7645"
+  };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+  // Fixed path so iPad and Phone connect automatically without typing a key
+  const TRACKER_ID = "default-user";
+
+  const isFirebaseConfigured = !firebaseConfig.apiKey.startsWith("YOUR_");
+  const db = isFirebaseConfigured ? getDatabase(initializeApp(firebaseConfig)) : null;
 
   const HABIT_COUNT = 10;
   const DEFAULT_HABITS = [
@@ -276,20 +266,16 @@ const analytics = getAnalytics(app);
 
   const monthSelect = document.getElementById("monthSelect");
   const yearSelect = document.getElementById("yearSelect");
-  const syncKeyInput = document.getElementById("syncKeyInput");
   const syncStatus = document.getElementById("syncStatus");
   const headerRow = document.getElementById("headerRow");
   const trackerBody = document.getElementById("trackerBody");
-
-  let currentSyncKey = localStorage.getItem("habitSyncKey") || "";
-  syncKeyInput.value = currentSyncKey;
 
   let unsubscribeHabits = null;
   let unsubscribeMonth = null;
 
   function setStatus(msg, isError = false) {
     syncStatus.textContent = msg;
-    syncStatus.style.color = isError ? "#dc2626" : "#0f766e";
+    syncStatus.classList.toggle("error", isError);
   }
 
   function initMonthSelectors() {
@@ -343,12 +329,12 @@ const analytics = getAnalytics(app);
     habits[index] = value.trim() || `Habit ${index + 1}`;
     localStorage.setItem("habitNames_en_v2", JSON.stringify(habits));
 
-    if (db && currentSyncKey) {
+    if (db) {
       try {
-        await set(ref(db, `trackers/${currentSyncKey}/habits`), habits);
-        setStatus(`Synced (${currentSyncKey})`);
+        await set(ref(db, `trackers/${TRACKER_ID}/habits`), habits);
+        setStatus("Synced");
       } catch (e) {
-        setStatus("Cloud save failed (saved locally)", true);
+        setStatus("Sync error", true);
       }
     }
   }
@@ -356,12 +342,12 @@ const analytics = getAnalytics(app);
   async function saveMonthData(monthKey, data) {
     localStorage.setItem(`habitData_en_${monthKey}`, JSON.stringify(data));
 
-    if (db && currentSyncKey) {
+    if (db) {
       try {
-        await set(ref(db, `trackers/${currentSyncKey}/months/${monthKey}`), data);
-        setStatus(`Synced (${currentSyncKey})`);
+        await set(ref(db, `trackers/${TRACKER_ID}/months/${monthKey}`), data);
+        setStatus("Synced");
       } catch (e) {
-        setStatus("Cloud save failed (saved locally)", true);
+        setStatus("Sync error", true);
       }
     }
   }
@@ -377,20 +363,15 @@ const analytics = getAnalytics(app);
     }
 
     if (!isFirebaseConfigured) {
-      setStatus("Add firebaseConfig in code to enable cloud sync");
-      return;
-    }
-
-    if (!currentSyncKey) {
-      setStatus("Enter a Sync Key and click Connect & Sync");
+      setStatus("Local Only (Set firebaseConfig)", true);
       return;
     }
 
     const monthKey = getSelectedMonth();
-    const habitsRef = ref(db, `trackers/${currentSyncKey}/habits`);
-    const monthRef = ref(db, `trackers/${currentSyncKey}/months/${monthKey}`);
+    const habitsRef = ref(db, `trackers/${TRACKER_ID}/habits`);
+    const monthRef = ref(db, `trackers/${TRACKER_ID}/months/${monthKey}`);
 
-    setStatus(`Connecting (${currentSyncKey})...`);
+    setStatus("Syncing...");
 
     unsubscribeHabits = onValue(habitsRef, (snapshot) => {
       if (snapshot.exists()) {
@@ -402,34 +383,29 @@ const analytics = getAnalytics(app);
       } else {
         set(habitsRef, getLocalHabits());
       }
-      setStatus(`Synced (${currentSyncKey})`);
+      setStatus("Synced");
     }, () => {
-      setStatus("Sync permission/network error", true);
+      setStatus("Sync error", true);
     });
 
     unsubscribeMonth = onValue(monthRef, (snapshot) => {
       if (snapshot.exists()) {
         localStorage.setItem(`habitData_en_${monthKey}`, JSON.stringify(snapshot.val()));
-        renderTable();
+      } else {
+        localStorage.removeItem(`habitData_en_${monthKey}`);
       }
+      renderTable();
+      setStatus("Synced");
     });
   }
-
-  window.applySyncKey = function () {
-    const key = syncKeyInput.value.trim();
-    currentSyncKey = key;
-    localStorage.setItem("habitSyncKey", key);
-    subscribeToCloud();
-    renderTable();
-  };
 
   window.resetCurrentMonth = async function () {
     const monthKey = getSelectedMonth();
     const monthLabel = `${MONTH_NAMES[Number(monthSelect.value) - 1]} ${yearSelect.value}`;
     if (confirm(`Reset all checkmarks for ${monthLabel}?`)) {
       localStorage.removeItem(`habitData_en_${monthKey}`);
-      if (db && currentSyncKey) {
-        await remove(ref(db, `trackers/${currentSyncKey}/months/${monthKey}`));
+      if (db) {
+        await remove(ref(db, `trackers/${TRACKER_ID}/months/${monthKey}`));
       }
       renderTable();
     }
