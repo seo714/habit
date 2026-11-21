@@ -28,7 +28,7 @@
       width: 100%;
       max-width: 1020px;
       background: white;
-      padding: 24px;
+      padding: 20px;
       border-radius: 16px;
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
@@ -42,30 +42,9 @@
       gap: 10px;
     }
 
-    .title-area {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
     h1 {
       margin: 0;
-      font-size: 1.5rem;
-    }
-
-    .sync-badge {
-      font-size: 0.8rem;
-      font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: #ecfdf5;
-      color: #047857;
-    }
-
-    .sync-badge.error {
-      background: #fef2f2;
-      color: #dc2626;
+      font-size: 1.4rem;
     }
 
     .controls {
@@ -75,10 +54,10 @@
     }
 
     select, button {
-      padding: 8px 12px;
+      padding: 7px 11px;
       border: 1px solid var(--border);
       border-radius: 8px;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       background: white;
       color: var(--text);
       cursor: pointer;
@@ -107,7 +86,7 @@
       width: 100%;
       border-collapse: collapse;
       text-align: center;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
     }
 
     th, td {
@@ -143,7 +122,7 @@
       font-size: 0.75rem;
       line-height: 1.2;
       color: var(--text);
-      padding: 4px;
+      padding: 3px;
       border-radius: 4px;
     }
 
@@ -153,42 +132,30 @@
     }
 
     input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
+      width: 17px;
+      height: 17px;
       accent-color: var(--primary);
       cursor: pointer;
       vertical-align: middle;
     }
 
     .status-col {
-      min-width: 60px;
-      font-size: 1.3rem;
+      min-width: 48px;
+      font-size: 1.15rem;
       background-color: #fafafa;
     }
 
     tr.completed-row {
       background-color: var(--complete-bg);
-      transition: background-color 0.3s ease;
     }
 
     tr.completed-row td:first-child {
       background-color: #fef08a;
     }
 
-    .emoji-pop {
-      display: inline-block;
-      animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    @keyframes pop {
-      0% { transform: scale(0); }
-      80% { transform: scale(1.3); }
-      100% { transform: scale(1); }
-    }
-
     .guide {
       margin-top: 12px;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       color: #64748b;
     }
   </style>
@@ -197,10 +164,7 @@
 
 <div class="container">
   <header>
-    <div class="title-area">
-      <h1>📅 Monthly 10-Habit Tracker</h1>
-      <span id="syncStatus" class="sync-badge">Connecting...</span>
-    </div>
+    <h1>📅 Monthly 10-Habit Tracker</h1>
     <div class="controls">
       <select id="monthSelect" aria-label="Month"></select>
       <select id="yearSelect" aria-label="Year"></select>
@@ -229,14 +193,14 @@
 
   // 1. Replace with your Firebase project config
   const firebaseConfig = {
-    apiKey: "AIzaSyADPGN9Hn2n5gZ5Ww_YAy-k1-UHi_-fz7M",
-    authDomain: "godlife-5c3f5.firebaseapp.com",
-    databaseURL: "https://godlife-5c3f5-default-rtdb.firebaseio.com",
-    projectId: "godlife-5c3f5",
-    storageBucket: "godlife-5c3f5.firebasestorage.app",
-    messagingSenderId: "737203853234",
-    appId: "1:737203853234:web:8d98f0ab857976e074f6ab",
-    measurementId: "G-B7D5FS7645"
+  apiKey: "AIzaSyADPGN9Hn2n5gZ5Ww_YAy-k1-UHi_-fz7M",
+  authDomain: "godlife-5c3f5.firebaseapp.com",
+  databaseURL: "https://godlife-5c3f5-default-rtdb.firebaseio.com",
+  projectId: "godlife-5c3f5",
+  storageBucket: "godlife-5c3f5.firebasestorage.app",
+  messagingSenderId: "737203853234",
+  appId: "1:737203853234:web:8d98f0ab857976e074f6ab",
+  measurementId: "G-B7D5FS7645"
   };
 
   // Fixed path so iPad and Phone connect automatically without typing a key
@@ -258,7 +222,7 @@
     "Craftsman Information Processing",
     "Drink Water"
   ];
-  const CELEBRATION_EMOJIS = ["🎉", "🔥", "🏆", "🥳", "🌟", "💯", "👑", "✨"];
+  const COMPLETION_EMOJI = "🔥";
   const MONTH_NAMES = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
@@ -266,17 +230,11 @@
 
   const monthSelect = document.getElementById("monthSelect");
   const yearSelect = document.getElementById("yearSelect");
-  const syncStatus = document.getElementById("syncStatus");
   const headerRow = document.getElementById("headerRow");
   const trackerBody = document.getElementById("trackerBody");
 
   let unsubscribeHabits = null;
   let unsubscribeMonth = null;
-
-  function setStatus(msg, isError = false) {
-    syncStatus.textContent = msg;
-    syncStatus.classList.toggle("error", isError);
-  }
 
   function initMonthSelectors() {
     const now = new Date();
@@ -332,9 +290,8 @@
     if (db) {
       try {
         await set(ref(db, `trackers/${TRACKER_ID}/habits`), habits);
-        setStatus("Synced");
       } catch (e) {
-        setStatus("Sync error", true);
+        console.error("Habit sync failed:", e);
       }
     }
   }
@@ -345,9 +302,8 @@
     if (db) {
       try {
         await set(ref(db, `trackers/${TRACKER_ID}/months/${monthKey}`), data);
-        setStatus("Synced");
       } catch (e) {
-        setStatus("Sync error", true);
+        console.error("Month sync failed:", e);
       }
     }
   }
@@ -362,16 +318,11 @@
       unsubscribeMonth = null;
     }
 
-    if (!isFirebaseConfigured) {
-      setStatus("Local Only (Set firebaseConfig)", true);
-      return;
-    }
+    if (!isFirebaseConfigured) return;
 
     const monthKey = getSelectedMonth();
     const habitsRef = ref(db, `trackers/${TRACKER_ID}/habits`);
     const monthRef = ref(db, `trackers/${TRACKER_ID}/months/${monthKey}`);
-
-    setStatus("Syncing...");
 
     unsubscribeHabits = onValue(habitsRef, (snapshot) => {
       if (snapshot.exists()) {
@@ -383,9 +334,6 @@
       } else {
         set(habitsRef, getLocalHabits());
       }
-      setStatus("Synced");
-    }, () => {
-      setStatus("Sync error", true);
     });
 
     unsubscribeMonth = onValue(monthRef, (snapshot) => {
@@ -395,7 +343,6 @@
         localStorage.removeItem(`habitData_en_${monthKey}`);
       }
       renderTable();
-      setStatus("Synced");
     });
   }
 
@@ -471,7 +418,7 @@
           if (!currentData[day]) currentData[day] = Array(HABIT_COUNT).fill(false);
           currentData[day][h] = checkbox.checked;
           saveMonthData(monthKey, currentData);
-          updateRowStatus(tr, currentData[day], day);
+          updateRowStatus(tr, currentData[day]);
         });
 
         td.appendChild(checkbox);
@@ -482,7 +429,7 @@
       statusTd.className = "status-col";
       tr.appendChild(statusTd);
 
-      updateRowStatus(tr, dayChecks, day);
+      updateRowStatus(tr, dayChecks);
       trackerBody.appendChild(tr);
     }
 
@@ -497,14 +444,13 @@
     }
   }
 
-  function updateRowStatus(tr, dayChecks, day) {
+  function updateRowStatus(tr, dayChecks) {
     const statusTd = tr.lastElementChild;
     const isAllCompleted = dayChecks.length === HABIT_COUNT && dayChecks.every(Boolean);
 
     if (isAllCompleted) {
       tr.classList.add("completed-row");
-      const emoji = CELEBRATION_EMOJIS[day % CELEBRATION_EMOJIS.length];
-      statusTd.innerHTML = `<span class="emoji-pop">${emoji}</span>`;
+      statusTd.textContent = COMPLETION_EMOJI;
     } else {
       tr.classList.remove("completed-row");
       statusTd.textContent = "";
